@@ -1,39 +1,65 @@
-This folder contains the following files:
+## Cosine Similarity
+I try to implement a variant of cosine similarity (with the L1-
+Norm) as the ranking function. This essentially involves constructing the
+document vector and the query vector and then taking their dot product.
 
-1. Data
-  a. queryDocTrainData.(train|dev) & queryDocTrainRel.(train|dev): training data as in PA3 but we split into training and development sets.
-  
-  b. df.txt: document frequency file with list all words in PA1 corpus together with their frequencies (note the total number of documents is 98998). You are free to use your df/idf files in PA3.
+###Document vector
+####Term frequency
+I compute the raw term frequencies for each query term in the different fields using the method For each of the
+fields, we can compute the tf vector, either using the raw scores themselves or by applying sublinear scaling on the raw scores (In sublinear
+scaling, we have tfi = 1 + log(rsi) if rsi > 0 and 0 otherwise. Thus,
+the tf vector for the body field for qd will be
 
-2. Helper code 
-  a. l2r.py
-     This is a baseline skeleton code provided for your help. It contains stub functions that you need to implement. Running as follows:
-       $ python l2r.py queryDocTrainData.train queryDocTrainRel.train <test_data_file> <task> > ranked.txt
+1:6931 0 0 2:6094
 
-     <test_data_file>: test data file, e.g., "queryDocTrainData.dev". 
-     <task>: either 1 (Task 1), 2 (Task 2), 3 (Task 3) or 4 (Extra Credit). 
-	 (Set <task> to 0 to get started and familiarize yourself with the script.)
-  
-  b. ndcg.py
-     This is the code for calculating the ndcg score of your ranking algorithm. You can run the code as follows:
-       $ python ndcg.py <rank_output_file> <test_rel_file>
-       
-    <rank_output_file>: the file produced by step (a), e.g., ranked.txt.
-    <test_rel_file>: test relevance file, e.g., "queryDocTrainRel.dev".
+####Document frequency
+We will not use any document frequency in the document vector. In-
+stead, it is incorporated in the query vector as described below.
+####Normalization
+We cannot use cosine normalization as we do not have access to the
+contents of the document and, thus, do not know what other terms
+(and counts of those terms) occur in the body eld. As a result, we
+use length normalization instead. Moreover, since there can be huge
+discrepancies between the lengths of the dierent elds, we divide all
+elds by the same normalization factor, the body length (Note that
+some documents have a body length of 0, so you will have to smooth
+them somehow. A good strategy is to add a value, say 500, to the
+body length of each document. You can experiment with this value or
+with other smoothing strategies and report them).
 
-3. l2r.sh
-   This is the script we will be calling to execute your program. Execute it as follows: 
-       $ ./l2r.sh <task> <test_data_file>
-	
-   <task>: either 1 (Task 1), 2 (Task 2), 3 (Task 3), or 4 (Extra Credit). 
-   <train_data_file>: has the same format as files queryDocTrainData.(train|dev)
-   You can use any language to do the assignment and could modify the script as long as the following requirements are satisfied:
-     - l2r.sh should work with the parameters as mentioned above.
-     - l2r.sh should output ranking results to stdout in the format that will be graded .
-     - your code can take any number of extra arguments, the script should only take these two.
-
-4. submit.py
-   This is the submit script used for the assignment. Please submit each task individually. In order to submit a task, simply run the following command:
-       $ python submit.py
-
-   Note that Tasks 1/2/3 are parts of the requirement for the assignment and 4 is for extra credit (optional). The report should be present in the same folder with the name "report.pdf".
+Query vector
+ Term frequency
+The raw term frequencies can be computed using the query (should be
+1 for most queries but not necessarily true). Again, you can use either
+the raw frequencies or sublinearly scale them. 
+ Document frequency
+Each of the terms in qv should be weighted using the idf value for
+each of the terms in the query. Computing the idf requires going to
+the corpus from PA1 to determine how many documents contain the
+query terms. One issue is that it is possible for a query term t to not
+appear in the collection corpus and it is not possible to evaluate idft.
+In such a case, we will apply the Laplace add-one smoothing technique
+learned earlier in the course (This essentially assumes the existence of
+a hypothetical dummy document that contains all possible terms, and
+therefore, adds 1 to each numerator and denominator with the idft
+formula).
+ Normalization
+No normalization is needed for query length because any query length
+normalization applies to all docs and so is not relevant to ranking.
+For a document d and query q, if qvq is the query vector and tfd;u, tfd;t,
+tfd;b, tfd;h and tfd;a are the term score vector for the url, title, body, header
+and anchor elds, respectively, then the net score is qvq  (cu tfd;u+ct tfd;t+
+cb  tfd;b + ch  tfd;h + ca  tfd;a). Here, cu, ct, cb, ch and ca are the weights
+given to url, title, body, header and anchors elds, respectively.
+The goal is to determine the weights for all 5 elds (and, thus, the ranking
+function using cosine similarity) so that the NDCG function is of a optimal
+value when run on the test set. You will use the training set given to derive
+the above parameters. In the report, you should mention parameter
+values and describe brie
+y the intuition and reasons behind why
+the weights were selected.
+Hint: Note that the absolute values of weights won't matter as they will
+be the same for all documents, only the relative weights for dierent elds is
+important; i.e. you can multiply each weight by a constant and the ranking
+will remain the same. In order to estimate the relative weights, try to reason
+the relative importance of the dierent elds.
